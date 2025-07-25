@@ -11,7 +11,8 @@
 /backend/__pycache__/
 /backend/*.pyc
 /backend/*.sqlite3
-/backend/*.env
+/backend/
+*.env
 
 logs/
 *.log
