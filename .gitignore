@@ -1,18 +1,28 @@
-# Global ignores for the entire project
-.DS_Store
-Thumbs.db
-.env
-.vscode/
-.idea/
-logs/
-*.log
+# Ignore everything in this directory
+*
+
+# EXCEPT these folders/files needed for the student-chatbot-project:
+!/backend/
+!/student_s_chatbot/
+!.gitignore
+!README.md # If you plan to add a README.md at the root later
+
+# Specific ignores within the included folders
+# Node.js specific (for student_s_chatbot)
+node_modules/
+build/
+
+# Python specific (for backend)
+venv/
 __pycache__/
 *.pyc
 *.sqlite3
+*.env
 
-# Python specific
-venv/
-
-# Node.js specific
-node_modules/
-build/
+# Other common ignores
+logs/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
