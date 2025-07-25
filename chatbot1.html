@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concept Playground: Atom Builder</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; }
+        .app-container { display: flex; width: 90%; max-width: 1000px; height: 80vh; background-color: #ffffff; border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        
+        .chat-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #eee; }
+        .chat-header { background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%); color: white; padding: 15px; text-align: center; font-size: 1.2em; font-weight: bold; border-top-left-radius: 15px; }
+        .chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background-color: #eef2f6; }
+        .message { padding: 10px 15px; border-radius: 18px; max-width: 85%; position: relative; word-wrap: break-word; }
+        .user-message { align-self: flex-end; background-color: #007bff; color: white; border-bottom-right-radius: 5px; }
+        .bot-message { align-self: flex-start; background-color: #f1f0f0; color: #333; border-bottom-left-radius: 5px; }
+        .chat-input { display: flex; padding: 10px; border-top: 1px solid #ddd; background-color: #ffffff; }
+        .chat-input input { flex-grow: 1; border: 1px solid #cce0ff; border-radius: 20px; padding: 8px 15px; margin-right: 8px; outline: none; font-size: 0.9em; }
+        .chat-input button { background-color: #007bff; color: white; border: none; border-radius: 20px; padding: 8px 15px; cursor: pointer; font-size: 0.9em; transition: background-color 0.3s ease; }
+        .chat-input button:hover { background-color: #0056b3; }
+
+        .playground-panel { flex: 1.5; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #dbe7f5; position: relative; }
+        #atom-canvas { border: 2px solid #a0c2e3; background-color: #f7faff; border-radius: 10px; }
+        .particle-shelf { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; padding: 10px 20px; background-color: rgba(255,255,255,0.9); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .particle-doll { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white; cursor: grab; transition: transform 0.1s ease; user-select: none; }
+        .particle-doll:active { cursor: grabbing; transform: scale(1.1); }
+        .proton { background-color: #ff4d4d; } /* Red */
+        .neutron { background-color: #9b59b6; } /* Purple */
+        .electron { background-color: #3498db; } /* Blue */
+
+        .animation-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; justify-content: center; align-items: center; background-color: rgba(255,255,255,0.7); z-index: 10; }
+        #lottie-animation { width: 200px; height: 200px; }
+    </style>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <div class="chat-panel">
+            <div class="chat-header">⚛️ Concept Playground 🔬</div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="bot-message message">Hello! Welcome to the Concept Playground. Want to learn about atoms? Say "build an atom"!</div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="user-input" placeholder="Type your message...">
+                <button id="send-button">Send</button>
+            </div>
+        </div>
+
+        <div class="playground-panel">
+            <canvas id="atom-canvas" width="400" height="400"></canvas>
+            
+            <div class="particle-shelf" id="particle-shelf" style="display: none;">
+                <div class="particle-doll proton" draggable="true" data-type="proton">P</div>
+                <div class="particle-doll neutron" draggable="true" data-type="neutron">N</div>
+                <div class="particle-doll electron" draggable="true" data-type="electron">E</div>
+            </div>
+
+            <div class="animation-overlay" id="animation-overlay">
+                <lottie-player id="lottie-animation" src="" background="transparent" speed="1" loop autoplay></lottie-player>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const atomCanvas = document.getElementById('atom-canvas');
+        const ctx = atomCanvas.getContext('2d');
+        const particleShelf = document.getElementById('particle-shelf');
+        const animationOverlay = document.getElementById('animation-overlay');
+        const lottieAnimation = document.getElementById('lottie-animation');
+
+        let currentChatContext = null; // To store conversational context
+        let particlesOnCanvas = []; // Stores { id, type, x, y }
+        let currentDragParticle = null;
+
+        // --- Lottie Animation Map (placeholders, replace with actual URLs) ---
+        const animationMap = {
+            "chatbot_thinking": "https://assets9.lottiefiles.com/packages/lf20_tmswy3fv.json", 
+            "atom_builder_intro": "https://assets9.lottiefiles.com/packages/lf20_qpwb1r6q.json", // Animated atom intro
+            "proton_add_animation": "https://assets9.lottiefiles.com/packages/lf20_m60f0n2q.json", // Sparkle/plus sign
+            "neutron_add_animation": "https://assets9.lottiefiles.com/packages/lf20_s913h5e3.json", // Neutral symbol
+            "electron_add_animation": "https://assets9.lottiefiles.com/packages/lf20_x3d4w9h6.json", // Electron orbit
+            "nucleus_stable_glow": "https://assets9.lottiefiles.com/packages/lf20_s3b4w2w2.json", // Glowing effect
+            "atom_complete_sparkle": "https://assets9.lottiefiles.com/packages/lf20_s2d9y1t5.json", // Confetti/stars
+            "reset_build_animation": "https://assets9.lottiefiles.com/packages/lf20_f1w9t0t4.json", // Eraser/reset
+            "atom_concept_animation": "https://assets9.lottiefiles.com/packages/lf20_w7z1n0h0.json", // Generic atom visualization
+            "chatbot_confused": "https://assets3.lottiefiles.com/packages/lf20_w59r2q4i.json", 
+        };
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', `${sender}-message`);
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+        }
+
+        function playLottieAnimation(animationName, loop = false) {
+            if (animationMap[animationName]) {
+                animationOverlay.style.display = 'flex';
+                lottieAnimation.load(animationMap[animationName]);
+                lottieAnimation.loop = loop;
+                lottieAnimation.play();
+            } else {
+                animationOverlay.style.display = 'none';
+                lottieAnimation.stop();
+            }
+        }
+
+        function hideLottieAnimation() {
+            animationOverlay.style.display = 'none';
+            lottieAnimation.stop();
+        }
+
+        // --- Canvas Drawing Functions ---
+        function drawParticle(x, y, type) {
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            if (type === 'proton') {
+                ctx.fillStyle = '#ff4d4d'; // Red
+                ctx.fillText('P', x - 5, y + 5);
+            } else if (type === 'neutron') {
+                ctx.fillStyle = '#9b59b6'; // Purple
+                ctx.fillText('N', x - 5, y + 5);
+            } else if (type === 'electron') {
+                ctx.fillStyle = '#3498db'; // Blue
+                ctx.fillText('E', x - 5, y + 5);
+            }
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(type[0].toUpperCase(), x, y + 2); // P, N, E
+            ctx.closePath();
+        }
+
+        function drawCanvas() {
+            ctx.clearRect(0, 0, atomCanvas.width, atomCanvas.height);
+            // Draw nucleus area
+            ctx.beginPath();
+            ctx.arc(atomCanvas.width / 2, atomCanvas.height / 2, 60, 0, Math.PI * 2);
+            ctx.strokeStyle = '#a0c2e3';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
+            
+            // Draw electron shell (conceptual)
+            ctx.beginPath();
+            ctx.arc(atomCanvas.width / 2, atomCanvas.height / 2, 120, 0, Math.PI * 2);
+            ctx.strokeStyle = '#cce0ff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.closePath();
+
+            particlesOnCanvas.forEach(p => drawParticle(p.x, p.y, p.type));
+        }
+
+        // --- Drag and Drop Logic for Particles ---
+        document.querySelectorAll('.particle-doll').forEach(doll => {
+            doll.addEventListener('dragstart', (e) => {
+                currentDragParticle = { type: doll.dataset.type, x: e.clientX, y: e.clientY };
+                e.dataTransfer.setData('text/plain', doll.dataset.type);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+        });
+
+        atomCanvas.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Allow drop
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        atomCanvas.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            const rect = atomCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Simple check if dropped in nucleus or shell area
+            const centerX = atomCanvas.width / 2;
+            const centerY = atomCanvas.height / 2;
+            const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+
+            let placementArea = 'outside';
+            if (distance <= 60) { // Nucleus radius
+                placementArea = 'nucleus';
+            } else if (distance <= 120) { // Electron shell radius
+                placementArea = 'shell';
+            }
+
+            // Simulate sending interaction to backend
+            const interactionMessage = `I dragged a ${type} to the ${placementArea} area.`;
+            const payload = {
+                user_message: interactionMessage,
+                context: currentChatContext,
+                doll_state: { // Send current frontend state for backend validation if needed
+                    particles_on_canvas: particlesOnCanvas.map(p => ({type: p.type, x: p.x, y: p.y}))
+                }
+            };
+
+            // Add particle to canvas immediately for visual feedback
+            const newParticle = { id: Date.now(), type, x, y, placementArea };
+            particlesOnCanvas.push(newParticle);
+            drawCanvas(); // Redraw canvas with new particle
+
+            await sendInteractionToBackend(payload);
+            currentDragParticle = null;
+        });
+
+        async function sendInteractionToBackend(payload) {
+            playLottieAnimation("chatbot_thinking"); // Show thinking animation
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                
+                addMessage(data.text, 'bot');
+                playLottieAnimation(data.animation_trigger);
+
+                // Update canvas based on backend's doll_state_update
+                if (data.doll_state_update) {
+                    if (data.doll_state_update.reset_canvas) {
+                        particlesOnCanvas = []; // Clear all particles
+                    }
+                    if (data.doll_state_update.particle_add) {
+                        // Backend confirms particle add, but frontend already added it for responsiveness
+                        // In a more complex app, backend might send precise positions/IDs
+                    }
+                }
+                drawCanvas(); // Redraw after potential reset or other updates
+
+                currentChatContext = data.context; // Update context
+                
+            } catch (error) {
+                console.error("Error communicating with chatbot:", error);
+                addMessage("Oops! My apologies, I seem to be having trouble right now. Please try again in a moment.", 'bot');
+                hideLottieAnimation();
+            }
+            // Hide thinking animation after response or error
+            setTimeout(hideLottieAnimation, 2000); // Give time for success anim
+        }
+
+        // --- Chat message sending (for text-based interaction) ---
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            const payload = {
+                user_message: message,
+                context: currentChatContext,
+                doll_state: { // Send current frontend state for backend validation if needed
+                    particles_on_canvas: particlesOnCanvas.map(p => ({type: p.type, x: p.x, y: p.y}))
+                }
+            };
+            await sendInteractionToBackend(payload);
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initial setup
+        drawCanvas();
+        playLottieAnimation("chatbot_thinking", true); // Loop a thinking animation initially
+        setTimeout(hideLottieAnimation, 3000); // Hide after a few seconds
+
+    </script>
+</body>
+</html>

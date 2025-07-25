@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether: Your AI Tutor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: linear-gradient(135deg, #e0f2fe, #cce0ff); /* Lighter, softer blue gradient */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            overflow: hidden; 
+            color: #333; 
+            position: relative; /* For background elements */
+        }
+
+        /* Background AI Icons/Patterns */
+        .background-icon {
+            position: absolute;
+            opacity: 0.1; /* Subtle */
+            filter: grayscale(100%); /* Desaturate */
+            z-index: 0; /* Behind content */
+            pointer-events: none; /* Don't interfere with clicks */
+        }
+        .icon-1 { top: 10%; left: 5%; width: 80px; height: 80px; }
+        .icon-2 { top: 25%; left: 15%; width: 60px; height: 60px; }
+        .icon-3 { bottom: 20%; left: 8%; width: 90px; height: 90px; }
+        .icon-4 { top: 15%; right: 10%; width: 70px; height: 70px; }
+        .icon-5 { bottom: 10%; right: 5%; width: 100px; height: 100px; }
+        .icon-6 { top: 40%; left: 2%; width: 50px; height: 50px; }
+        .icon-7 { bottom: 30%; right: 15%; width: 75px; height: 75px; }
+
+
+        .app-container { 
+            display: flex; 
+            flex-direction: column; /* Stack header, chat, input */
+            width: 90%; 
+            max-width: 900px; /* Wider for chat focus */
+            height: 90vh; 
+            background-color: #ffffff; 
+            border-radius: 20px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1); 
+            overflow: hidden; 
+            position: relative; /* For the robot image */
+            z-index: 1; /* Above background icons */
+        }
+        
+        /* Chat Header */
+        .chat-header { 
+            background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%); 
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
+            font-size: 1.8em; /* Larger title */
+            font-weight: bold; 
+            border-top-left-radius: 20px; 
+            border-top-right-radius: 20px; /* Match app container */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            position: relative;
+        }
+
+        /* Chat Messages Area */
+        .chat-messages { 
+            flex-grow: 1; 
+            padding: 20px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; /* More space between messages */
+            background-color: #f8faff; 
+            scroll-behavior: smooth; 
+        }
+        .message { 
+            padding: 15px 20px; /* Larger padding */
+            border-radius: 25px; /* More rounded */
+            max-width: 75%; /* Slightly less wide */
+            position: relative; 
+            word-wrap: break-word; 
+            font-size: 1em; 
+            line-height: 1.6; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow */
+        }
+        .user-message { 
+            align-self: flex-end; 
+            background-color: #e0f2fe; /* Lighter blue */
+            color: #2196f3; 
+            border-bottom-right-radius: 8px; /* Asymmetric rounding */
+            border-top-right-radius: 25px;
+            border-top-left-radius: 25px;
+            border-bottom-left-radius: 25px;
+        }
+        .bot-message { 
+            align-self: flex-start; 
+            background-color: #f0f0f0; 
+            color: #555; 
+            border-bottom-left-radius: 8px; /* Asymmetric rounding */
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            border-bottom-right-radius: 25px;
+        }
+
+        /* Avatars within messages */
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            position: absolute;
+            bottom: -10px; /* Position below message bubble */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .user-message .message-avatar {
+            right: -10px;
+        }
+        .bot-message .message-avatar {
+            left: -10px;
+        }
+
+        /* Chat Input Area */
+        .chat-input { 
+            display: flex; 
+            padding: 15px 20px; /* More padding */
+            border-top: 1px solid #ddd; 
+            background-color: #ffffff; 
+            border-bottom-left-radius: 20px; 
+            border-bottom-right-radius: 20px;
+        }
+        .chat-input input { 
+            flex-grow: 1; 
+            border: 1px solid #cce0ff; 
+            border-radius: 25px; 
+            padding: 12px 20px; 
+            margin-right: 10px; 
+            outline: none; 
+            font-size: 1em; 
+            transition: border-color 0.3s, box-shadow 0.3s; 
+            background-color: #f8faff; /* Light background for input */
+        }
+        .chat-input input:focus { 
+            border-color: #2575fc; 
+            box-shadow: 0 0 0 4px rgba(37, 117, 252, 0.25); /* Stronger focus glow */
+        }
+        .chat-input button { 
+            background-color: #2575fc; 
+            color: white; 
+            border: none; 
+            border-radius: 25px; 
+            padding: 12px 25px; /* Wider button */
+            cursor: pointer; 
+            font-size: 1em; 
+            font-weight: 600; 
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.2s; 
+            box-shadow: 0 4px 10px rgba(37, 117, 252, 0.2); /* Button shadow */
+        }
+        .chat-input button:hover { 
+            background-color: #1a5ac5; 
+            transform: translateY(-2px); /* More pronounced lift */
+            box-shadow: 0 6px 15px rgba(37, 117, 252, 0.3);
+        }
+        .chat-input button:active { 
+            transform: translateY(0); 
+            box-shadow: 0 2px 5px rgba(37, 117, 252, 0.2);
+        }
+
+        /* Timers (adjusted for new layout) */
+        .timer-display { 
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            background-color: rgba(255, 255, 255, 0.9); 
+            padding: 8px 15px; 
+            border-radius: 15px; 
+            font-weight: bold; 
+            font-size: 0.9em; /* Slightly smaller */
+            color: #333; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            z-index: 5; 
+        }
+        .timer-display.study-active { background-color: #d4edda; color: #155724; } 
+        .timer-display.quiz-active { background-color: #ffeeba; color: #856404; } 
+        .timer-icon { width: 20px; height: 20px; } /* Slightly smaller icon */
+        #study-timer-display, #quiz-timer-display { display: none; } 
+
+        /* Robot Image (Conceptual) */
+        .robot-image {
+            position: absolute;
+            bottom: 0;
+            right: -50px; /* Adjust as needed to position */
+            width: 350px; /* Size of the robot image */
+            height: auto;
+            z-index: 2; /* Above app container */
+            pointer-events: none; /* Don't block clicks */
+            transform: translateX(0); /* Initial position */
+            transition: transform 0.5s ease-out; /* Smooth entry */
+        }
+        .robot-image.hidden {
+            transform: translateX(100%); /* Move off screen */
+        }
+        .robot-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Lottie Overlay (remains similar) */
+        .animation-overlay { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            background-color: rgba(255,255,255,0.7); 
+            z-index: 10; 
+            border-radius: 20px; 
+        }
+        #lottie-animation { width: 250px; height: 250px; }
+
+        /* Notification Modal (remains similar styling) */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.4); 
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-content input[type="tel"] {
+            width: calc(100% - 40px);
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        .modal-content button {
+            background-color: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .modal-content button:hover {
+            background-color: #1a5ac5;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .app-container {
+                width: 98%;
+                height: 95vh;
+            }
+            .chat-messages {
+                padding: 15px;
+            }
+            .message {
+                max-width: 90%;
+                font-size: 0.9em;
+            }
+            .chat-input {
+                padding: 10px 15px;
+            }
+            .chat-input input, .chat-input button {
+                padding: 10px 15px;
+            }
+            .robot-image {
+                display: none; /* Hide robot on small screens if it takes too much space */
+            }
+            .background-icon {
+                display: none; /* Hide background icons on small screens */
+            }
+        }
+    </style>
+    <!-- Lottie Player library -->
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+</head>
+<body>
+    <!-- Background AI Icons (Conceptual - replace with actual SVGs or Font Awesome if desired) -->
+    <svg class="background-icon icon-1" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+    <svg class="background-icon icon-2" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+    <svg class="background-icon icon-3" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 3.2c-.5-.3-1.1-.3-1.6 0l-5.3 3c-.5.3-.8.9-.8 1.5v6.5c0 .6.3 1.2.8 1.5l5.3 3c.5.3 1.1.3 1.6 0l5.3-3c.5-.3.8-.9.8-1.5V7.7c0-.6-.3-1.2-.8-1.5l-5.3-3z"></path><path d="M12 18V6"></path><path d="M6 15l6-3 6 3"></path></svg>
+    <svg class="background-icon icon-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+    <svg class="background-icon icon-5" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 3.2c-.5-.3-1.1-.3-1.6 0l-5.3 3c-.5.3-.8.9-.8 1.5v6.5c0 .6.3 1.2.8 1.5l5.3 3c.5.3 1.1.3 1.6 0l5.3-3c.5-.3.8-.9.8-1.5V7.7c0-.6-.3-1.2-.8-1.5l-5.3-3z"></path><path d="M12 18V6"></path><path d="M6 15l6-3 6 3"></path></svg>
+    <svg class="background-icon icon-6" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+    <svg class="background-icon icon-7" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+
+
+    <div class="app-container">
+        <div class="chat-header">
+            Aether: Your AI Tutor
+            <div id="study-timer-display" class="timer-display">
+                <img src="https://www.svgrepo.com/show/528352/hourglass.svg" alt="Study Timer" class="timer-icon">
+                <span id="study-time-left">00:00</span>
+            </div>
+            <div id="quiz-timer-display" class="timer-display">
+                <img src="https://www.svgrepo.com/show/532354/timer-alt-3.svg" alt="Quiz Timer" class="timer-icon">
+                <span id="quiz-time-left">00:00</span>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="bot-message message">
+                Hello! I'm Aether, your AI Tutor. What would you like to learn or practice today?
+                <img src="https://placehold.co/35x35/f0f0f0/555?text=AI" alt="Bot Avatar" class="message-avatar">
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <!-- Conceptual Robot Image (positioned outside app-container for effect) -->
+    <div class="robot-image" id="robot-image">
+        <img src="https://placehold.co/350x350/ffffff/000?text=Robot+AI" alt="Robot AI">
+        <!-- You can replace the placeholder image above with a real robot image URL -->
+    </div>
+
+    <div class="animation-overlay" id="animation-overlay">
+        <lottie-player id="lottie-animation" src="" background="transparent" speed="1" loop autoplay></lottie-player>
+    </div>
+
+    <!-- Notification Modal -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeModalButton">&times;</span>
+            <h2>Register for Notifications</h2>
+            <p>Enter your mobile number to receive study reminders and quiz results.</p>
+            <input type="tel" id="phoneNumberInput" placeholder="e.g., +1234567890" pattern="[0-9+]{10,15}" title="Phone number (10-15 digits, optional +)">
+            <button id="registerPhoneButton">Register</button>
+        </div>
+    </div>
+
+    <script>
+        (function() { // IIFE to encapsulate variables
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            // Removed atomCanvas and ctx as the canvas panel is removed
+            // const atomCanvas = document.getElementById('atom-canvas');
+            // const ctx = atomCanvas.getContext('2d');
+            // Removed particleShelf as the canvas panel is removed
+            // const particleShelf = document.getElementById('particle-shelf');
+            const animationOverlay = document.getElementById('animation-overlay');
+            const lottieAnimation = document.getElementById('lottie-animation');
+            const studyTimerDisplay = document.getElementById('study-timer-display');
+            const studyTimeLeft = document.getElementById('study-time-left');
+            const quizTimerDisplay = document.getElementById('quiz-timer-display');
+            const quizTimeLeft = document.getElementById('quiz-time-left');
+            const robotImageElement = document.getElementById('robot-image'); // New: Robot image element
+
+            // Notification Modal elements
+            const notificationModal = document.getElementById('notificationModal');
+            const closeModalButton = document.getElementById('closeModalButton');
+            const phoneNumberInput = document.getElementById('phoneNumberInput');
+            const registerPhoneButton = document.getElementById('registerPhoneButton');
+
+
+            let currentChatContext = null; 
+            // Removed particlesOnCanvas as the canvas panel is removed
+            // let particlesOnCanvas = []; 
+            // Removed currentDragParticle as the canvas panel is removed
+            // let currentDragParticle = null;
+            let studyTimerInterval = null;
+            let quizTimerInterval = null;
+            let quizQuestionTimeLeft = 0;
+            let currentQuizTotalQuestions = 0;
+            let currentQuizQuestionNumber = 0;
+
+
+            // --- Lottie Animation Map (PLACEHOLDERS: Replace with your actual Lottie JSON URLs) ---
+            // You can find many free Lottie animations on LottieFiles.com
+            const animationMap = {
+                "waving_hand_greet": "https://assets10.lottiefiles.com/packages/lf20_tmtl1q.json", 
+                "chatbot_confused": "https://assets3.lottiefiles.com/packages/lf20_w59r2q4i.json", 
+                "timer_start_animation": "https://assets1.lottiefiles.com/packages/lf20_v9uk66c7.json", // Clock animation
+                "timer_stop_animation": "https://assets10.lottiefiles.com/packages/lf20_dyq61qf6.json", // Checkmark/stop
+                "clock_animation": "https://assets1.lottiefiles.com/packages/lf20_v9uk66c7.json", // Same as start timer
+                "quiz_start_animation": "https://assets3.lottiefiles.com/packages/lf20_r790d9q7.json", // Question mark / quiz start
+                "correct_answer_sparkle": "https://assets2.lottiefiles.com/packages/lf20_l3zv4s5s.json", // Confetti / sparkle
+                "incorrect_answer_sad": "https://assets4.lottiefiles.com/packages/lf20_xd6t9e.json", // Sad face / cross mark
+                "explaining_concept_animation": "https://assets9.lottiefiles.com/packages/lf20_tmswy3fv.json", // Thinking / lightbulb
+                "atom_builder_intro": "https://assets9.lottiefiles.com/packages/lf20_qpwb1r6q.json", // Animated atom intro
+                "proton_add_animation": "https://assets9.lottiefiles.com/packages/lf20_m60f0n2q.json", // Sparkle/plus sign
+                "neutron_add_animation": "https://assets9.lottiefiles.com/packages/lf20_s913h5e3.json", // Neutral symbol
+                "electron_add_animation": "https://assets9.lottiefiles.com/packages/lf20_x3d4w9h6.json", // Electron orbit
+                "atom_complete_sparkle": "https://assets9.lottiefiles.com/packages/lf20_s2d9y1t5.json", // Confetti/stars
+                "reset_build_animation": "https://assets9.lottiefiles.com/packages/lf20_f1w9t0t4.json", // Eraser/reset
+                "waving_hand_exit": "https://assets2.lottiefiles.com/packages/lf20_dyq61qf6.json", 
+                "phone_notification_animation": "https://assets9.lottiefiles.com/packages/lf20_q4o00a.json", // Phone ringing/notification
+                // Add more creative animations for specific topics or interactions!
+            };
+
+            function addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', `${sender}-message`);
+                messageDiv.innerHTML = text; // Use innerHTML for bolding, etc.
+
+                // Add avatar
+                const avatarImg = document.createElement('img');
+                avatarImg.classList.add('message-avatar');
+                if (sender === 'user') {
+                    avatarImg.src = "https://placehold.co/35x35/e0f2fe/2196f3?text=You"; // Placeholder for user avatar
+                    avatarImg.alt = "User Avatar";
+                } else {
+                    avatarImg.src = "https://placehold.co/35x35/f0f0f0/555?text=AI"; // Placeholder for bot avatar
+                    avatarImg.alt = "Bot Avatar";
+                }
+                messageDiv.appendChild(avatarImg);
+
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to bottom
+            }
+
+            function playLottieAnimation(animationName, loop = false, duration = 2000) {
+                if (animationMap[animationName]) {
+                    animationOverlay.style.display = 'flex';
+                    lottieAnimation.load(animationMap[animationName]);
+                    lottieAnimation.loop = loop;
+                    lottieAnimation.play();
+                    if (!loop) { // If not looping, hide after a duration
+                        setTimeout(() => hideLottieAnimation(), duration);
+                    }
+                } else {
+                    hideLottieAnimation(); // Hide if animation name not found
+                }
+            }
+
+            function hideLottieAnimation() {
+                animationOverlay.style.display = 'none';
+                lottieAnimation.stop();
+            }
+
+            // --- Timer Functions ---
+            function startStudyTimer(durationSeconds) {
+                clearInterval(studyTimerInterval); // Clear any existing timer
+                let timeLeft = durationSeconds;
+                studyTimerDisplay.style.display = 'flex'; // Show timer display
+                studyTimerDisplay.classList.add('study-active'); // Apply active styling
+                
+                const updateTimer = () => {
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    studyTimeLeft.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(studyTimerInterval);
+                        studyTimerDisplay.style.display = 'none';
+                        addMessage("Aether: Your study timer has ended! Great job staying focused!", "bot");
+                        playLottieAnimation("timer_stop_animation");
+                        // Trigger conceptual mobile notification for study timer end
+                        sendConceptualMobileNotification("Aether: Study Timer Done!", "Your study session has ended. Great work!");
+                    }
+                    timeLeft--;
+                };
+                
+                updateTimer(); // Call immediately to show initial time
+                studyTimerInterval = setInterval(updateTimer, 1000); // Update every second
+            }
+
+            function stopStudyTimer() {
+                clearInterval(studyTimerInterval);
+                studyTimerDisplay.style.display = 'none';
+                studyTimerDisplay.classList.remove('study-active');
+            }
+
+            function startQuizTimer(durationSecondsPerQuestion, totalQuestions) {
+                clearInterval(quizTimerInterval);
+                quizTimerDisplay.style.display = 'flex';
+                quizTimerDisplay.classList.add('quiz-active');
+                currentQuizTotalQuestions = totalQuestions;
+                currentQuizQuestionNumber = 1; // Assuming first question is presented on start
+
+                quizQuestionTimeLeft = durationSecondsPerQuestion; // Set time for the first question
+                
+                const updateQuizTimer = () => {
+                    const minutes = Math.floor(quizQuestionTimeLeft / 60);
+                    const seconds = quizQuestionTimeLeft % 60;
+                    quizTimeLeft.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    
+                    if (quizQuestionTimeLeft <= 0) {
+                        clearInterval(quizTimerInterval);
+                        addMessage("Aether: Time's up for this question! Make sure to answer faster next time.", "bot");
+                    }
+                    quizQuestionTimeLeft--;
+                };
+                
+                updateQuizTimer();
+                quizTimerInterval = setInterval(updateQuizTimer, 1000);
+            }
+
+            function resetQuizQuestionTimer(durationSeconds) {
+                clearInterval(quizTimerInterval);
+                quizQuestionTimeLeft = durationSeconds;
+                quizTimerDisplay.style.display = 'flex';
+                quizTimerDisplay.classList.add('quiz-active'); 
+                
+                const updateQuizTimer = () => {
+                    const minutes = Math.floor(quizQuestionTimeLeft / 60);
+                    const seconds = quizQuestionTimeLeft % 60;
+                    quizTimeLeft.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    
+                    if (quizQuestionTimeLeft <= 0) {
+                        clearInterval(quizTimerInterval);
+                        addMessage("Aether: Time's up for this question! Make sure to answer faster next time.", "bot");
+                    }
+                    quizQuestionTimeLeft--;
+                };
+                updateQuizTimer();
+                quizTimerInterval = setInterval(updateQuizTimer, 1000);
+            }
+
+
+            function stopQuizTimer() {
+                clearInterval(quizTimerInterval);
+                quizTimerDisplay.style.display = 'none';
+                quizTimerDisplay.classList.remove('quiz-active');
+                currentQuizTotalQuestions = 0;
+                currentQuizQuestionNumber = 0;
+            }
+
+            // --- Conceptual Mobile Notification Function ---
+            function sendConceptualMobileNotification(title, body) {
+                // Check if browser supports notifications
+                if (!("Notification" in window)) {
+                    console.warn("This browser does not support desktop notification.");
+                    addMessage("Aether: (Note: Your browser does not support desktop notifications, so I can't send a pop-up.)", "bot");
+                    return;
+                }
+
+                // Check if notification permissions are granted
+                if (Notification.permission === "granted") {
+                    new Notification(title, { body: body, icon: 'https://www.svgrepo.com/show/528352/hourglass.svg' }); // Use a generic icon
+                    addMessage(`Aether: (Notification sent to your registered number: "${title} - ${body}")`, "bot");
+                } else if (Notification.permission !== "denied") {
+                    // Request permission if not already granted or denied
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            new Notification(title, { body: body, icon: 'https://www.svgrepo.com/show/528352/hourglass.svg' });
+                            addMessage(`Aether: (Notification sent to your registered number: "${title} - ${body}")`, "bot");
+                        } else {
+                            addMessage("Aether: (Notification permission denied. I can't send pop-up notifications.)", "bot");
+                        }
+                    });
+                } else {
+                    addMessage("Aether: (Notification permission denied. Please enable them in your browser settings if you wish to receive pop-ups.)", "bot");
+                }
+            }
+
+
+            // --- Canvas Drawing Functions for Atom Builder (REMOVED) ---
+            // These functions are no longer needed as the canvas panel is removed
+            /*
+            function resizeCanvas() {
+                const parent = atomCanvas.parentElement;
+                atomCanvas.width = parent.clientWidth * 0.9;
+                atomCanvas.height = parent.clientHeight * 0.9;
+                drawCanvas(); 
+            }
+
+            function drawParticle(x, y, type) {
+                ctx.beginPath();
+                ctx.arc(x, y, 25, 0, Math.PI * 2); 
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#333';
+                if (type === 'proton') {
+                    ctx.fillStyle = '#ff6b6b'; 
+                } else if (type === 'neutron') {
+                    ctx.fillStyle = '#8e44ad'; 
+                } else if (type === 'electron') {
+                    ctx.fillStyle = '#3498db'; 
+                }
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Poppins';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(type[0].toUpperCase(), x, y + 3); 
+                ctx.closePath();
+            }
+
+            function drawCanvas() {
+                ctx.clearRect(0, 0, atomCanvas.width, atomCanvas.height);
+                
+                const centerX = atomCanvas.width / 2;
+                const centerY = atomCanvas.height / 2;
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 70, 0, Math.PI * 2);
+                ctx.strokeStyle = '#a0c2e3';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.closePath();
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 140, 0, Math.PI * 2);
+                ctx.strokeStyle = '#cce0ff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.closePath();
+
+                particlesOnCanvas.forEach(p => drawParticle(p.x, p.y, p.type));
+            }
+            */
+
+            // --- Drag and Drop Logic for Particles (REMOVED) ---
+            // These event listeners are no longer needed as the canvas panel is removed
+            /*
+            document.querySelectorAll('.particle-doll').forEach(doll => {
+                doll.addEventListener('dragstart', (e) => {
+                    currentDragParticle = { type: doll.dataset.type };
+                    e.dataTransfer.setData('text/plain', doll.dataset.type);
+                    e.dataTransfer.effectAllowed = 'move';
+                    doll.style.opacity = '0.4'; 
+                });
+                doll.addEventListener('dragend', (e) => {
+                    doll.style.opacity = '1'; 
+                });
+            });
+
+            atomCanvas.addEventListener('dragover', (e) => {
+                e.preventDefault(); 
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            atomCanvas.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                const type = e.dataTransfer.getData('text/plain');
+                const rect = atomCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = atomCanvas.width / 2;
+                const centerY = atomCanvas.height / 2;
+                const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+
+                let placementArea = 'outside';
+                if (distance <= 70) { 
+                    placementArea = 'nucleus';
+                } else if (distance <= 140) {
+                    placementArea = 'shell';
+                }
+
+                const newParticle = { id: Date.now(), type, x, y, placementArea };
+                particlesOnCanvas.push(newParticle);
+                drawCanvas(); 
+
+                await sendInteractiveAction({
+                    action: "add_particle",
+                    particle_type: type,
+                    x_coord: x, 
+                    y_coord: y,
+                    placement_area: placementArea 
+                });
+                currentDragParticle = null;
+            });
+            */
+
+            // --- Communication with Backend ---
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+
+                addMessage(message, 'user');
+                userInput.value = '';
+
+                playLottieAnimation("chatbot_thinking", true); 
+
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_message: message, context: currentChatContext })
+                    });
+                    const data = await response.json();
+                    
+                    hideLottieAnimation(); 
+                    addMessage(`Aether: ${data.text}`, 'bot');
+                    playLottieAnimation(data.animation_trigger);
+
+                    currentChatContext = data.context; 
+
+                    if (data.action_trigger) {
+                        const action = data.action_trigger;
+                        if (action.type === "start_study_timer") {
+                            startStudyTimer(action.duration);
+                        } else if (action.type === "stop_study_timer") {
+                            stopStudyTimer();
+                        } else if (action.type === "start_quiz_timer") {
+                            startQuizTimer(action.duration, action.total_questions);
+                        } else if (action.type === "reset_quiz_question_timer") {
+                            resetQuizQuestionTimer(action.duration);
+                        } else if (action.type === "stop_quiz_timer") {
+                            stopQuizTimer();
+                            // Check for notification after quiz ends
+                            if (action.send_mobile_notification) {
+                                sendConceptualMobileNotification(action.send_mobile_notification.title, action.send_mobile_notification.body);
+                            }
+                        } else if (action.type === "prompt_interactive") {
+                            // The interactive canvas is removed, so this action will now just prompt a message
+                            addMessage("Aether: The interactive builder is not available in this version of the UI. Would you like me to explain the concept instead?", "bot");
+                            // You might want to add a modal or a new view for interactive elements if you re-introduce them
+                        } else if (action.type === "end_interactive") {
+                            // This action is now less relevant without the interactive panel
+                            currentChatContext = null; 
+                        } else if (action.type === "end_session") {
+                            userInput.disabled = true;
+                            sendButton.disabled = true;
+                        } else if (action.type === "prompt_phone_number_input") {
+                            notificationModal.style.display = 'flex'; // Show the modal
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error communicating with Aether:", error);
+                    addMessage("Aether: My apologies, I seem to be having trouble right now. Please try again in a moment.", 'bot');
+                    hideLottieAnimation();
+                }
+            }
+
+            // sendInteractiveAction is largely removed as the canvas is gone.
+            // If interactive elements are re-introduced (e.g., as modals), this function would be re-added/modified.
+            /*
+            async function sendInteractiveAction(actionData) {
+                playLottieAnimation("chatbot_thinking", true); 
+                try {
+                    const response = await fetch('/interactive_action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(actionData)
+                    });
+                    const data = await response.json();
+                    
+                    hideLottieAnimation(); 
+                    addMessage(`Aether: ${data.text}`, 'bot');
+                    playLottieAnimation(data.animation_trigger);
+
+                    currentChatContext = data.context; 
+                    
+                    if (data.action_trigger) {
+                        const action = data.action_trigger;
+                        if (action.type === "end_interactive") {
+                            particleShelf.style.display = 'none'; 
+                            particlesOnCanvas = []; 
+                            drawCanvas(); 
+                            currentChatContext = null; 
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Error sending interactive action:", error);
+                    addMessage("Aether: There was an issue processing your action. Please try again.", 'bot');
+                    hideLottieAnimation();
+                }
+            }
+            */
+
+            // --- Notification Modal Event Listeners ---
+            closeModalButton.addEventListener('click', () => {
+                notificationModal.style.display = 'none';
+                if (currentChatContext === "registering_phone_number") {
+                    currentChatContext = null;
+                    addMessage("Aether: Okay, I won't set up notifications for now. Let me know if you change your mind!", "bot");
+                }
+            });
+
+            registerPhoneButton.addEventListener('click', async () => {
+                const phoneNumber = phoneNumberInput.value.trim();
+                if (phoneNumber) {
+                    notificationModal.style.display = 'none'; 
+                    await sendMessage(`My phone number is ${phoneNumber}`);
+                } else {
+                    // Replaced alert with a message in chat or a small temporary modal if needed
+                    addMessage("Aether: Please enter a phone number in the modal.", "bot");
+                }
+            });
+
+
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // --- Initial Setup and Event Listeners ---
+            // Removed resizeCanvas and drawCanvas as the canvas panel is removed
+            // window.addEventListener('resize', resizeCanvas); 
+            // resizeCanvas(); 
+            // drawCanvas(); 
+            
+            // Initial welcome animation/thought
+            playLottieAnimation("chatbot_thinking", true); 
+            setTimeout(() => hideLottieAnimation(), 3000); 
+        })(); // End of IIFE
+    </script>
+</body>
+</html>
