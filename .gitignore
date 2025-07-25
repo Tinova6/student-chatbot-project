@@ -1,24 +1,21 @@
-# Ignore common OS and editor files
+*
+!.gitignore
+!/backend/
+!/student_s_chatbot/
+!/README.md
+
+/student_s_chatbot/node_modules/
+/student_s_chatbot/build/
+
+/backend/venv/
+/backend/__pycache__/
+/backend/*.pyc
+/backend/*.sqlite3
+/backend/*.env
+
+logs/
+*.log
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
-# Ignore Python specific files and folders
-__pycache__/
-*.pyc
-*.sqlite3
-venv/
-*.env
-logs/
-*.log
-
-# Node.js specific ignores (for student_s_chatbot)
-node_modules/
-build/
-
-# --- IMPORTANT: Explicitly track your project folders ---
-# The lines below are if you have a rule like '*' at the top of your .gitignore
-# If not, these might not be strictly necessary, but they don't hurt.
-!/backend/
-!/student_s_chatbot/
